@@ -29,9 +29,7 @@ services:
       S3_ENDPOINT_URL: http://localstack:4566
       S3_PUBLIC_ENDPOINT_URL: http://localhost:4566
       S3_BUCKET_NAME: devops-assessment
-      CORS_ORIGINS: http://localhost:8081
-    ports:
-      - "8002:8000"
+      CORS_ORIGINS: http://app.debyez.localhost
     depends_on:
       postgres:
         condition: service_healthy
@@ -48,6 +46,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`api.debyez.localhost`)"
+      - "traefik.http.routers.backend.entrypoints=web"
+      - "traefik.http.services.backend.loadbalancer.server.port=8000"      
 
   localstack:
     image: localstack/localstack:4.10
@@ -58,16 +61,32 @@ services:
     ports:
       - "4566:4566"
 
+  traefik:
+    image: traefik:v3.6
+    restart: unless-stopped
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
   frontend:
     image: devops-assessment-frontend:test
     restart: unless-stopped
     environment:
       VITE_API_BASE_URL: http://localhost:8002/api
-    ports:
-      - "8081:80"
     depends_on:
       backend:
         condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`app.debyez.localhost`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
 
 volumes:
   postgres_data:
