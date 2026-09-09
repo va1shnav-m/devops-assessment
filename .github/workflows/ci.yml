@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Validate backend
+        working-directory: backend
+        run: python -m compileall app
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Set image tag
+        run: echo "IMAGE_TAG=${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}        
+
+      - name: Build backend image
+        run: |
+          docker build \
+            -t vaishnav1234/devops-assessment-backend:${IMAGE_TAG} \
+            ./backend
+
+      - name: Build frontend image
+        run: |
+          docker build \
+            --build-arg VITE_API_BASE_URL=http://api.debyez.localhost/api \
+            -t vaishnav1234/devops-assessment-frontend:${IMAGE_TAG} \
+            ./frontend
+            
+      - name: Push backend image
+        run: |
+          docker push vaishnav1234/devops-assessment-backend:${IMAGE_TAG}
+
+      - name: Push frontend image
+        run: |
+          docker push vaishnav1234/devops-assessment-frontend:${IMAGE_TAG}            
