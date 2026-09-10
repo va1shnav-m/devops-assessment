@@ -15,7 +15,7 @@ services:
       retries: 5
 
   backend:
-    image: vaishnav1234/devops-assessment-backend:d76ef540e42b2f3aaf9cef64b5bbe2aed4508ad3
+    image: vaishnav1234/devops-assessment-backend:${IMAGE_TAG}
     restart: unless-stopped
     environment:
       DB_HOST: postgres
@@ -75,7 +75,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
   frontend:
-    image: vaishnav1234/devops-assessment-frontend:d76ef540e42b2f3aaf9cef64b5bbe2aed4508ad3
+    image: vaishnav1234/devops-assessment-frontend:${IMAGE_TAG}
     restart: unless-stopped
     depends_on:
       backend:
